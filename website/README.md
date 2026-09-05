@@ -30,4 +30,11 @@ The Windows `.exe` must be built on Windows (`npm run tauri:build`), then the sa
 
 ## Live GitHub issues
 
-Set `NEXT_PUBLIC_GITHUB_REPO=owner/repo` in `.env.local`. The Contribute section polls GitHub every 20 seconds and shows real open issues only — no sample tickets. Testers can file issues from the page; after GitHub accepts them they appear in the list.
+The Contribute section reads **[v0nser/ghostnote](https://github.com/v0nser/ghostnote)**. It polls every 20 seconds and shows real open issues only — no sample tickets. Testers file issues on GitHub; after GitHub accepts them they appear in the list.
+
+```
+NEXT_PUBLIC_GITHUB_REPO=v0nser/ghostnote
+GITHUB_REPO=v0nser/ghostnote
+```
+
+On Vercel, set the same values (do not use `ghostnote/ghostnote`) and redeploy. Optional: `GITHUB_TOKEN` to avoid unauthenticated rate limits.
