@@ -1,5 +1,5 @@
 export function getRepoSlug() {
-  const raw = process.env.NEXT_PUBLIC_GITHUB_REPO || process.env.GITHUB_REPO || "ghostnote/ghostnote";
+  const raw = process.env.NEXT_PUBLIC_GITHUB_REPO || process.env.GITHUB_REPO || "v0nser/ghostnote";
   return raw.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
 }
 
