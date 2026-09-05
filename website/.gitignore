@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.DS_Store
+venv/
+env/
+__pycache__/
+*.pt
+*.pth
+*.h5
+*.pkl
+data/

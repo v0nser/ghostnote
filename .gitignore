@@ -1,0 +1,39 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Rust / Tauri
+src-tauri/target
+src-tauri/gen
+
+# Built by scripts/setup-whisper.sh — a 4MB binary and a 141MB model do not
+# belong in git.
+src-tauri/binaries/
+.tooling/
+
+# Secrets & local data — never commit transcripts, notes or keys
+.env
+.env.*
+!.env.example
+*.ghostnote.db
+*.ghostnote.db-*
+/data
+src-tauri/target-test/
+src-tauri/target/
+src-tauri/target/
+src-tauri/target-test/
+target/
+src-tauri/target-test/
+src-tauri/target/

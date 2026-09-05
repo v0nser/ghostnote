@@ -1,0 +1,120 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* GhostNote ships dark-only. The window itself is transparent so the app can
+   paint its own rounded surface in both the dashboard and pill shells; the
+   page background must therefore stay transparent. */
+:root {
+  --radius: 0.7rem;
+
+  --background: oklch(0.145 0.004 285.8);
+  --foreground: oklch(0.967 0.002 286.4);
+  --card: oklch(0.18 0.004 285.8);
+  --card-foreground: oklch(0.967 0.002 286.4);
+  --popover: oklch(0.18 0.004 285.8);
+  --popover-foreground: oklch(0.967 0.002 286.4);
+  --primary: oklch(0.92 0.004 286.3);
+  --primary-foreground: oklch(0.21 0.006 285.9);
+  --secondary: oklch(0.245 0.006 286);
+  --secondary-foreground: oklch(0.967 0.002 286.4);
+  --muted: oklch(0.245 0.006 286);
+  --muted-foreground: oklch(0.66 0.006 286.3);
+  --accent: oklch(0.28 0.006 286);
+  --accent-foreground: oklch(0.967 0.002 286.4);
+  --destructive: oklch(0.637 0.208 25.3);
+  --destructive-foreground: oklch(0.97 0.014 254.6);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.55 0.014 286);
+
+  /* Stealth semantics: a single, deliberate accent used only for the one
+     signal in the UI that must never be misread. */
+  --stealth: oklch(0.72 0.16 158);
+  --stealth-foreground: oklch(0.16 0.02 158);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-stealth: var(--stealth);
+  --color-stealth-foreground: var(--stealth-foreground);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    background: transparent;
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Chrome and controls are never text targets. Selection stays enabled only
+     where the user is actually reading or editing notes (`.selectable`). */
+  body {
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+  }
+
+  .selectable {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: auto;
+  }
+
+  /* Keep type readable on a nearly-clear window sitting over a video call. */
+  .readable {
+    text-shadow:
+      0 1px 2px rgb(0 0 0 / 90%),
+      0 0 10px rgb(0 0 0 / 70%);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-white/10;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged into the generated app bundle by Tauri. Without these strings
+	     macOS terminates the app on first access instead of prompting. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>GhostNote records your voice so it can transcribe your meetings on this device. Audio never leaves your machine.</string>
+
+	<!-- ScreenCaptureKit is used only to capture the audio other participants
+	     are playing; no screen imagery is recorded or stored. -->
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>GhostNote captures meeting audio from other participants. No screen imagery is ever recorded or stored.</string>
+</dict>
+</plist>

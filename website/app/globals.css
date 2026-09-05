@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #000000;
+  --fg: #ececee;
+  --mist: #8a8a90;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+  scroll-padding-top: 7.5rem;
+}
+
+::selection {
+  background: rgba(200, 200, 204, 0.28);
+  color: #fff;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #ffffff 0%, #c8c8cc 70%, #8a8a90 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass {
+  background: rgba(22, 22, 24, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid #c8c8cc;
+  outline-offset: 3px;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(14);
+    opacity: 0;
+  }
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marqueeReverse {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.group:hover [style*="marquee"] {
+  animation-play-state: paused;
+}
+
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0 1px;
+  transition: background-size 0.25s ease;
+}
+
+.link-underline:hover {
+  background-size: 100% 1px;
+}
+
+.early-bird-aurora {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(34, 211, 238, 0.16), transparent 36%),
+    radial-gradient(circle at 80% 10%, rgba(167, 139, 250, 0.16), transparent 34%),
+    radial-gradient(circle at 50% 90%, rgba(56, 189, 248, 0.14), transparent 40%);
+  animation: auroraShift 16s ease-in-out infinite;
+}
+
+.early-bird-border {
+  background: conic-gradient(from var(--border-angle), #22d3ee, #a78bfa, #38bdf8, #22d3ee);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 1px;
+  animation: borderSpin 8s linear infinite;
+}
+
+.early-bird-headline {
+  background: linear-gradient(90deg, #ffffff, #22d3ee, #a78bfa, #ffffff);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: headlineShine 3s ease-in-out infinite;
+  text-shadow: 0 0 24px rgba(34, 211, 238, 0.15);
+}
+
+.shimmer-btn {
+  background-image: linear-gradient(90deg, #c8c8cc, #ffffff, #c8c8cc);
+  background-size: 200% 100%;
+  animation: shimmer 2.4s linear infinite;
+}
+
+@keyframes auroraShift {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    filter: hue-rotate(24deg);
+    opacity: 0.85;
+  }
+}
+
+@keyframes borderSpin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes headlineShine {
+  0%,
+  100% {
+    background-position: 0% 50%;
+    filter: drop-shadow(0 0 0 rgba(34, 211, 238, 0));
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.35));
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
