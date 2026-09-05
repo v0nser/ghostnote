@@ -8,7 +8,6 @@ import { repoUrl } from "@/lib/repo";
 export function GitHubBadge() {
   const [stars, setStars] = useState<number | null>(null);
   const [contributors, setContributors] = useState<number | null>(null);
-  const [href, setHref] = useState(repoUrl());
 
   useEffect(() => {
     fetch("/api/github", { cache: "no-store" })
@@ -16,7 +15,6 @@ export function GitHubBadge() {
       .then((data) => {
         if (typeof data?.stats?.stars === "number") setStars(data.stats.stars);
         if (typeof data?.stats?.contributors === "number") setContributors(data.stats.contributors);
-        if (data?.repo) setHref(data.repo);
       })
       .catch(() => undefined);
   }, []);
@@ -32,7 +30,7 @@ export function GitHubBadge() {
         <p className="text-xs text-white/35">© {new Date().getFullYear()} GhostNote</p>
       )}
       <a
-        href={href}
+        href={repoUrl()}
         aria-label="GitHub"
         className="focus-ring inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-xs text-mist transition hover:border-cyan/40 hover:text-white"
       >

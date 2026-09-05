@@ -18,14 +18,13 @@ export function OpenSource() {
   const inView = useInView(ref, { once: true });
   const [stars, setStars] = useState(0);
   const [contributors, setContributors] = useState(0);
-  const [repo, setRepo] = useState(repoUrl());
+  const repo = repoUrl();
 
   useEffect(() => {
     let frame = 0;
     fetch("/api/github", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        if (data?.repo) setRepo(data.repo);
         if (typeof data?.stats?.contributors === "number") setContributors(data.stats.contributors);
         const target = typeof data?.stats?.stars === "number" ? data.stats.stars : 0;
         if (!inView) {

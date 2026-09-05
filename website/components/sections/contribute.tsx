@@ -109,6 +109,10 @@ export function Contribute() {
             openIssues: open.length,
           };
         }
+        payload.slug = slug;
+        payload.repo = repoUrl();
+        payload.newIssueUrl = repoUrl("/issues/new");
+        payload.issuesUrl = repoUrl("/issues");
         setData(payload);
         setUpdatedAt(new Date().toLocaleTimeString());
       })
@@ -131,8 +135,8 @@ export function Contribute() {
   const stars = useCountUp(stats.stars, statsInView);
   const forks = useCountUp(stats.forks, statsInView);
   const contributorCount = useCountUp(stats.contributors, statsInView);
-  const repo = data?.repo ?? repoUrl();
-  const slug = data?.slug ?? "your-repo";
+  const repo = repoUrl();
+  const slug = getRepoSlug();
 
   return (
     <section id="contribute" className="relative overflow-hidden px-5 py-24">
@@ -218,8 +222,8 @@ export function Contribute() {
                     {data?.error === "rate_limited"
                       ? "GitHub rate-limited this request. Add a GITHUB_TOKEN in website/.env.local, or wait a minute and refresh."
                       : data?.error === "not_found"
-                        ? `Repository ${slug} was not found. Set NEXT_PUBLIC_GITHUB_REPO=owner/repo in website/.env.local.`
-                        : `Could not load ${slug}. Set NEXT_PUBLIC_GITHUB_REPO=owner/repo in website/.env.local.`}
+                        ? `Repository ${slug} was not found. Confirm it is public at ${repo}.`
+                        : `Could not load issues from ${slug}. If GitHub rate-limited the request, add a GITHUB_TOKEN and refresh.`}
                   </p>
                 ) : issues.length === 0 ? (
                   <p className="mt-5 text-sm text-white/70">

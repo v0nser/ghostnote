@@ -1,11 +1,19 @@
+export const GITHUB_REPO_SLUG = "v0nser/ghostnote";
+
+function normalizeRepoSlug(value: string) {
+  return value.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
+}
+
 export function getRepoSlug() {
-  const raw = process.env.NEXT_PUBLIC_GITHUB_REPO || process.env.GITHUB_REPO || "v0nser/ghostnote";
-  return raw.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
+  const configured = normalizeRepoSlug(
+    process.env.NEXT_PUBLIC_GITHUB_REPO || process.env.GITHUB_REPO || GITHUB_REPO_SLUG,
+  );
+  if (!configured || configured === "ghostnote/ghostnote") return GITHUB_REPO_SLUG;
+  return configured;
 }
 
 export function repoUrl(path = "") {
-  const slug = getRepoSlug();
-  return `https://github.com/${slug}${path}`;
+  return `https://github.com/${getRepoSlug()}${path}`;
 }
 
 export function newIssueUrl(input?: { title?: string; body?: string; labels?: string }) {
