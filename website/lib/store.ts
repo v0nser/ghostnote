@@ -37,6 +37,10 @@ type OfferState = {
   last24h: number;
 };
 
+type OfferDoc = OfferState & { _id: string };
+
+const OFFER_ID = "early-bird";
+
 type MemoryStore = {
   reservations: Reservation[];
   subscriptions: Subscription[];
@@ -62,12 +66,13 @@ function remainingFrom(claimed: number) {
 export async function getOfferStatus() {
   const db = await getDb();
   if (db) {
-    const doc = await db.collection<OfferState & { _id: string }>("offerState").findOne({ _id: "early-bird" });
+    const offers = db.collection<OfferDoc>("offerState");
+    const doc = await offers.findOne({ _id: OFFER_ID });
     const claimed = doc?.claimed ?? DEFAULT_CLAIMED;
     const last24h = doc?.last24h ?? 41;
     if (!doc) {
-      await db.collection("offerState").insertOne({
-        _id: "early-bird",
+      await offers.insertOne({
+        _id: OFFER_ID,
         claimed: DEFAULT_CLAIMED,
         last24h: 41,
       });
@@ -119,8 +124,8 @@ export async function reserveSpot(email: string) {
       };
     }
     await db.collection("reservations").insertOne(reservation);
-    await db.collection("offerState").updateOne(
-      { _id: "early-bird" },
+    await db.collection<OfferDoc>("offerState").updateOne(
+      { _id: OFFER_ID },
       { $inc: { claimed: 1, last24h: 1 }, $setOnInsert: { claimed: DEFAULT_CLAIMED, last24h: 41 } },
       { upsert: true },
     );
@@ -170,8 +175,8 @@ export async function createSubscription(input: {
       { upsert: true },
     );
     if (!existing) {
-      await db.collection("offerState").updateOne(
-        { _id: "early-bird" },
+      await db.collection<OfferDoc>("offerState").updateOne(
+        { _id: OFFER_ID },
         { $inc: { claimed: 1, last24h: 1 } },
         { upsert: true },
       );
