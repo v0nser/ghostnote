@@ -8,9 +8,9 @@ const COLUMNS = [
   {
     title: "Product",
     links: [
+      ["Capabilities", "/#capabilities"],
       ["Features", "/#features"],
-      ["Early Bird", "/#early-bird"],
-      ["Pricing", "/#pricing"],
+      ["How it works", "/#how"],
       ["Download", "/#cta"],
     ],
   },
@@ -30,7 +30,7 @@ const COLUMNS = [
       ["Docs", "/#how"],
       ["Community", "/#contribute"],
       ["Support", "/#faq"],
-      ["Checkout", "/checkout?plan=pro"],
+      ["Windows setup", "/#how"],
     ],
   },
   {
@@ -50,7 +50,7 @@ export function Footer() {
         <div>
           <Logo />
           <p className="mt-4 max-w-xs text-sm text-mist">
-            Invisible intelligence. Unforgettable meetings.
+            Local-first personal agent. Invisible in meetings.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">

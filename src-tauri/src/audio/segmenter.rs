@@ -21,6 +21,12 @@ const FRAME_SAMPLES: usize = vad::FRAME_SAMPLES;
 /// Trailing silence that ends an utterance for the user's mic (echo gating).
 const SILENCE_TO_CUT_MS: usize = 250;
 
+/// Voice commands keep going until a real pause so “play …” is one clip.
+const VOICE_SILENCE_TO_CUT_MS: usize = 900;
+
+/// Extra lead-in so the /p/ in “play” is not chopped off.
+const VOICE_PREROLL_MS: usize = 480;
+
 /// End-of-question pause. See [`vad::INTERVIEWER_HANGOVER_MS`].
 const QUESTION_SILENCE_MS: usize = vad::INTERVIEWER_HANGOVER_MS;
 
@@ -56,6 +62,8 @@ const fn ms_to_samples(ms: usize) -> usize {
 
 pub struct Segmenter {
     speaker: Speaker,
+    silence_cut_ms: usize,
+    preroll_ms: usize,
 
     /// Unprocessed tail, shorter than one frame.
     partial: Vec<f32>,
@@ -87,11 +95,22 @@ pub struct Segmenter {
 
 impl Segmenter {
     pub fn new(speaker: Speaker) -> Self {
+        Self::with_timing(speaker, SILENCE_TO_CUT_MS, PREROLL_MS)
+    }
+
+    /// Longer pause + more preroll so a spoken command is one clean clip.
+    pub fn voice_command(speaker: Speaker) -> Self {
+        Self::with_timing(speaker, VOICE_SILENCE_TO_CUT_MS, VOICE_PREROLL_MS)
+    }
+
+    fn with_timing(speaker: Speaker, silence_cut_ms: usize, preroll_ms: usize) -> Self {
         Self {
             speaker,
+            silence_cut_ms,
+            preroll_ms,
             partial: Vec::with_capacity(FRAME_SAMPLES),
             current: Vec::new(),
-            preroll: std::collections::VecDeque::with_capacity(ms_to_samples(PREROLL_MS)),
+            preroll: std::collections::VecDeque::with_capacity(ms_to_samples(preroll_ms)),
             in_speech: false,
             trailing_silence: 0,
             speech_samples: 0,
@@ -200,7 +219,7 @@ impl Segmenter {
 
     fn silence_to_cut_samples(&self) -> usize {
         match self.speaker {
-            Speaker::You => ms_to_samples(SILENCE_TO_CUT_MS),
+            Speaker::You => ms_to_samples(self.silence_cut_ms),
             Speaker::Participant => vad::INTERVIEWER_HANGOVER_SAMPLES,
         }
     }
@@ -247,7 +266,7 @@ impl Segmenter {
     }
 
     fn remember_preroll(&mut self, frame: &[f32]) {
-        let capacity = ms_to_samples(PREROLL_MS);
+        let capacity = ms_to_samples(self.preroll_ms);
         self.preroll.extend(frame.iter().copied());
         while self.preroll.len() > capacity {
             self.preroll.pop_front();
@@ -380,6 +399,19 @@ mod tests {
             out[0].duration_ms() < MAX_UTTERANCE_MS as u64,
             "utterance ran to the cap instead of cutting on silence"
         );
+    }
+
+    #[test]
+    fn voice_command_waits_for_a_real_pause() {
+        let mut segmenter = Segmenter::voice_command(Speaker::You);
+        segmenter.push(&silence(400));
+        segmenter.push(&tone(600, 0.3));
+        assert!(
+            segmenter.push(&silence(400)).is_empty(),
+            "400ms is still inside a spoken command"
+        );
+        let out = segmenter.push(&silence(VOICE_SILENCE_TO_CUT_MS + 100));
+        assert_eq!(out.len(), 1);
     }
 
     #[test]

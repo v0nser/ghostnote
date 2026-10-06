@@ -1,0 +1,16 @@
+---
+import { site } from "../content/site";
+---
+
+<footer class="overflow-hidden border-t border-ink/10">
+  <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 md:flex-row md:items-end md:justify-between md:px-8">
+    <p class="max-w-md text-sm text-ink-3">{site.footer.note}</p>
+    <div class="flex gap-5 text-sm text-ink-2">
+      {site.nav.map((item) => <a href={item.href} class="hover:text-ink">{item.label}</a>)}
+      <a href={site.source.href} class="hover:text-ink">GitHub ↗</a>
+    </div>
+  </div>
+  <p class="select-none px-4 text-center font-display text-[30vw] italic leading-[0.72] tracking-[-0.04em] text-ink/[0.06] md:px-8" aria-hidden="true">
+    coda
+  </p>
+</footer>

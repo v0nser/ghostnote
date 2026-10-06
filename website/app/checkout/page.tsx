@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, Suspense, useMemo, useState } from "react";
+import { type FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 
@@ -17,9 +17,19 @@ function CheckoutForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [payNote, setPayNote] = useState("Card payments worldwide via Polar.");
 
   const price = expired ? 30 : 15;
   const details = useMemo(() => PLAN_FEATURES[plan], [plan]);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((res) => res.json())
+      .then((payload) => {
+        if (typeof payload?.copy === "string") setPayNote(payload.copy);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -79,13 +89,10 @@ function CheckoutForm() {
           placeholder="you@company.com"
         />
         <MagneticButton type="submit" className="mt-6 w-full">
-          {busy ? "Redirecting…" : "Continue to payment"}
+          {busy ? "Redirecting…" : "Continue to Polar checkout"}
         </MagneticButton>
         {error ? <p className="mt-3 text-sm text-rose-300">{error}</p> : null}
-        <p className="mt-4 text-xs text-white/40">
-          If Stripe keys are set, you go to Stripe Checkout. Otherwise GhostNote records the subscription in MongoDB
-          and unlocks paid features immediately for this demo.
-        </p>
+        <p className="mt-4 text-xs text-white/40">{payNote}</p>
       </form>
     </div>
   );

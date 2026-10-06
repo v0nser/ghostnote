@@ -46,7 +46,7 @@ export function StealthPill() {
         </span>
 
         <div className="min-w-0 flex-1 leading-tight" data-tauri-drag-region="false">
-          <p className="truncate text-xs font-medium text-foreground">GhostNote</p>
+          <p className="truncate text-xs font-medium text-foreground">Coda</p>
           <p className="truncate text-[10px] text-muted-foreground">{status}</p>
         </div>
 

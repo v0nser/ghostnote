@@ -7,6 +7,7 @@
 //! simpler and faster here.
 
 pub mod commands;
+mod correct;
 pub mod error;
 pub mod model;
 mod sidecar;
@@ -18,18 +19,21 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use tokio::sync::oneshot;
 
+use crate::agent::AgentRuntime;
 use crate::audio::types::{Speaker, Utterance};
 use crate::audio::{wav, UtteranceSink};
 use crate::ollama::Coach;
 
+pub use correct::voice_command as correct_voice;
 pub use error::{TranscribeError, TranscribeResult};
 
 /// Emitted for every recognised utterance.
-pub const SEGMENT_EVENT: &str = "ghostnote://transcript-segment";
+pub const SEGMENT_EVENT: &str = "coda://transcript-segment";
 /// Emitted when transcription fails, so the UI can show a degraded state
 /// rather than silently stop producing text.
-pub const ERROR_EVENT: &str = "ghostnote://transcript-error";
+pub const ERROR_EVENT: &str = "coda://transcript-error";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,6 +61,7 @@ pub struct TranscriptError {
 #[derive(Default)]
 pub struct Transcriber {
     tx: Mutex<Option<UnboundedSender<Utterance>>>,
+    done: Mutex<Option<oneshot::Receiver<()>>>,
     next_id: Arc<AtomicU64>,
 }
 
@@ -68,7 +73,9 @@ impl Transcriber {
     /// user's words to save a few kilobytes would be the wrong trade.
     pub fn start(&self, app: &AppHandle) -> UtteranceSink {
         let (tx, mut rx) = unbounded_channel::<Utterance>();
+        let (done_tx, done_rx) = oneshot::channel();
         *self.lock() = Some(tx.clone());
+        *self.done.lock().unwrap_or_else(|err| err.into_inner()) = Some(done_rx);
 
         let app = app.clone();
         let next_id = Arc::clone(&self.next_id);
@@ -78,22 +85,23 @@ impl Transcriber {
             // too, but talking points have to land the moment the other side
             // stops — waiting behind a You clip would miss that window.
             let mut them: VecDeque<Utterance> = VecDeque::new();
+            let mut you: VecDeque<Utterance> = VecDeque::new();
             let mut recent: Vec<(Speaker, String)> = Vec::new();
 
             loop {
-                if them.is_empty() {
+                if them.is_empty() && you.is_empty() {
                     match rx.recv().await {
-                        Some(utterance) => enqueue(&mut them, utterance),
+                        Some(utterance) => enqueue(&mut them, &mut you, utterance),
                         None => break,
                     }
                 }
 
                 while let Ok(utterance) = rx.try_recv() {
-                    enqueue(&mut them, utterance);
+                    enqueue(&mut them, &mut you, utterance);
                 }
 
-                let Some(utterance) = them.pop_front() else {
-                    break;
+                let Some(utterance) = next_clip(&mut them, &mut you) else {
+                    continue;
                 };
 
                 // A finished question always beats a preview we already popped.
@@ -118,6 +126,7 @@ impl Transcriber {
                     Err(err) => report(&app, &err),
                 }
             }
+            let _ = done_tx.send(());
             log::debug!("transcription worker stopped");
         });
 
@@ -133,13 +142,25 @@ impl Transcriber {
         self.lock().take();
     }
 
+    /// Drops the input and waits until Whisper has finished every clip
+    /// already queued — needed so a short voice command is not discarded
+    /// the moment the user releases the mic.
+    pub async fn finish(&self) {
+        self.lock().take();
+        let done = self.done.lock().unwrap_or_else(|err| err.into_inner()).take();
+        if let Some(done) = done {
+            let _ = done.await;
+        }
+    }
+
     fn lock(&self) -> std::sync::MutexGuard<'_, Option<UnboundedSender<Utterance>>> {
         self.tx.lock().unwrap_or_else(|err| err.into_inner())
     }
 }
 
-fn enqueue(them: &mut VecDeque<Utterance>, utterance: Utterance) {
+fn enqueue(them: &mut VecDeque<Utterance>, you: &mut VecDeque<Utterance>, utterance: Utterance) {
     if utterance.speaker != Speaker::Participant {
+        you.push_back(utterance);
         return;
     }
     them.retain(|queued| !queued.preview);
@@ -148,6 +169,10 @@ fn enqueue(them: &mut VecDeque<Utterance>, utterance: Utterance) {
     } else {
         them.push_front(utterance);
     }
+}
+
+fn next_clip(them: &mut VecDeque<Utterance>, you: &mut VecDeque<Utterance>) -> Option<Utterance> {
+    them.pop_front().or_else(|| you.pop_front())
 }
 
 fn prefer_finished(them: &mut VecDeque<Utterance>, current: Utterance) -> Utterance {
@@ -181,7 +206,14 @@ async fn handle(
     let clip = wav::write(&cache_dir, &format!("utterance-{id}"), &utterance.samples)
         .map_err(|err| TranscribeError::Audio(err.to_string()))?;
 
-    let Some(text) = sidecar::transcribe(app, &model, clip.path()).await? else {
+    let Some(text) = sidecar::transcribe(
+        app,
+        &model,
+        clip.path(),
+        utterance.speaker == Speaker::You,
+    )
+    .await?
+    else {
         log::debug!("utterance {id} contained no speech");
         return Ok(None);
     };
@@ -197,7 +229,16 @@ async fn handle(
     }))
 }
 
-fn publish(app: &AppHandle, segment: TranscriptSegment) {
+fn publish(app: &AppHandle, mut segment: TranscriptSegment) {
+    if let Some(runtime) = app.try_state::<AgentRuntime>() {
+        if runtime.voice_active() && segment.speaker == Speaker::You {
+            segment.text = correct::voice_command(&segment.text);
+            if !segment.provisional {
+                runtime.push_voice_text(&segment.text);
+            }
+        }
+    }
+
     // Never log `segment.text` — it is meeting content.
     if let Err(err) = app.emit(SEGMENT_EVENT, &segment) {
         log::warn!("failed to emit transcript segment: {err}");
@@ -262,7 +303,19 @@ pub fn warm_up(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::same_words;
+    use super::{enqueue, next_clip, same_words};
+    use crate::audio::types::{Speaker, Utterance};
+    use std::collections::VecDeque;
+
+    fn clip(speaker: Speaker) -> Utterance {
+        Utterance {
+            speaker,
+            samples: vec![0.2; 160],
+            start_ms: 0,
+            end_ms: 10,
+            preview: false,
+        }
+    }
 
     #[test]
     fn echo_of_the_same_sentence() {
@@ -278,5 +331,16 @@ mod tests {
             "can you walk me through a project you led recently",
             "what is your notice period and when can you start"
         ));
+    }
+
+    #[test]
+    fn microphone_clips_are_queued_for_voice_commands() {
+        let mut them = VecDeque::new();
+        let mut you = VecDeque::new();
+        enqueue(&mut them, &mut you, clip(Speaker::You));
+        enqueue(&mut them, &mut you, clip(Speaker::Participant));
+        assert_eq!(next_clip(&mut them, &mut you).unwrap().speaker, Speaker::Participant);
+        assert_eq!(next_clip(&mut them, &mut you).unwrap().speaker, Speaker::You);
+        assert!(next_clip(&mut them, &mut you).is_none());
     }
 }

@@ -4,14 +4,14 @@
 //! Ollama model streams one spoken answer. Meeting summaries share the
 //! same client.
 
-mod client;
+pub(crate) mod client;
 mod coach;
-mod error;
+pub(crate) mod error;
 mod parse;
 
 use tauri::{AppHandle, Manager};
 
-pub use client::CoachStatus;
+pub use client::{pick_fast_model, CoachStatus};
 pub use coach::{Coach, LiveCoachStatus, MeetingSummary, TalkingPoints, POINTS_EVENT, STATUS_EVENT};
 
 /// Snapshot the UI reads on mount, so it can hide the coach rather than
@@ -23,9 +23,10 @@ pub async fn coach_status(coach: tauri::State<'_, Coach>) -> Result<CoachStatus,
 
 #[tauri::command]
 pub async fn summarize_meeting(
+    app: AppHandle,
     coach: tauri::State<'_, Coach>,
 ) -> Result<MeetingSummary, error::OllamaError> {
-    coach.summarize().await
+    coach.summarize(&app).await
 }
 
 pub fn warm_up(app: &AppHandle) {

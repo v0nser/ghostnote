@@ -19,6 +19,8 @@ export type Reservation = {
   expiresAt: string;
 };
 
+export type PaymentProviderName = "polar" | "stripe" | "demo";
+
 export type Subscription = {
   id: string;
   email: string;
@@ -28,7 +30,10 @@ export type Subscription = {
   discountPct: number;
   code: string;
   entitlements: Entitlement[];
+  provider?: PaymentProviderName;
   stripeSessionId?: string;
+  polarCheckoutId?: string;
+  polarSubscriptionId?: string;
   createdAt: string;
 };
 
@@ -143,7 +148,10 @@ export async function reserveSpot(email: string) {
 export async function createSubscription(input: {
   email: string;
   plan: PlanId;
+  provider?: PaymentProviderName;
   stripeSessionId?: string;
+  polarCheckoutId?: string;
+  polarSubscriptionId?: string;
   status?: Subscription["status"];
 }) {
   const email = input.email.trim().toLowerCase();
@@ -155,7 +163,7 @@ export async function createSubscription(input: {
   }
 
   const subscription: Subscription = {
-    id: randomUUID(),
+    id: existing?.id ?? randomUUID(),
     email,
     plan,
     status: input.status ?? "active",
@@ -163,8 +171,11 @@ export async function createSubscription(input: {
     discountPct: 50,
     code: existing?.code ?? makeDiscountCode(),
     entitlements: PLAN_FEATURES[plan].entitlements,
-    stripeSessionId: input.stripeSessionId,
-    createdAt: new Date().toISOString(),
+    provider: input.provider ?? existing?.provider,
+    stripeSessionId: input.stripeSessionId ?? existing?.stripeSessionId,
+    polarCheckoutId: input.polarCheckoutId ?? existing?.polarCheckoutId,
+    polarSubscriptionId: input.polarSubscriptionId ?? existing?.polarSubscriptionId,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
   };
 
   const db = await getDb();

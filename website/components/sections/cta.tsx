@@ -13,7 +13,7 @@ export function Cta() {
           Ready to Make Every Meeting Count?
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-mist">
-          Install the desktop app. No account. No cloud key. Mac gets a .dmg, Windows gets a .exe.
+          Install the desktop app. No account. No cloud key. Mac gets a .dmg. Windows gets a .exe — then open Setup to download the speech model.
         </p>
         <div className="mt-10">
           <DownloadButtons />

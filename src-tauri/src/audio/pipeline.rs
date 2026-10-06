@@ -20,9 +20,9 @@ use super::types::{LevelEvent, RawFrames, Speaker, Utterance, VadEvent};
 use crate::ollama::Coach;
 
 /// Event carrying level-meter data to the UI.
-pub const LEVEL_EVENT: &str = "ghostnote://audio-level";
+pub const LEVEL_EVENT: &str = "coda://audio-level";
 /// Interviewer started or stopped speaking. Fires before Whisper runs.
-pub const VAD_EVENT: &str = "ghostnote://vad";
+pub const VAD_EVENT: &str = "coda://vad";
 
 /// How often the level meter updates. Fast enough to look live, slow enough
 /// that we are not spamming the webview's IPC channel during a long meeting.
@@ -38,13 +38,28 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn spawn(rx: Receiver<RawFrames>, app: AppHandle, sink: UtteranceSink) -> Self {
+    pub fn spawn(
+        rx: Receiver<RawFrames>,
+        app: AppHandle,
+        sink: UtteranceSink,
+        transcribe_microphone: bool,
+        capture_system_audio: bool,
+    ) -> Self {
         let stop = Arc::new(AtomicBool::new(false));
         let thread_stop = Arc::clone(&stop);
 
         let thread = std::thread::Builder::new()
-            .name("ghostnote-audio-pipeline".into())
-            .spawn(move || run(rx, app, sink, thread_stop))
+            .name("coda-audio-pipeline".into())
+            .spawn(move || {
+                run(
+                    rx,
+                    app,
+                    sink,
+                    thread_stop,
+                    transcribe_microphone,
+                    capture_system_audio,
+                )
+            })
             .expect("failed to spawn the audio pipeline thread");
 
         Self {
@@ -65,11 +80,26 @@ impl Drop for Pipeline {
     }
 }
 
-fn run(rx: Receiver<RawFrames>, app: AppHandle, sink: UtteranceSink, stop: Arc<AtomicBool>) {
+fn run(
+    rx: Receiver<RawFrames>,
+    app: AppHandle,
+    sink: UtteranceSink,
+    stop: Arc<AtomicBool>,
+    transcribe_microphone: bool,
+    capture_system_audio: bool,
+) {
     let mut resamplers: HashMap<Speaker, Resampler> = HashMap::new();
+    let voice_only = transcribe_microphone && !capture_system_audio;
     let mut segmenters: HashMap<Speaker, Segmenter> = Speaker::ALL
         .iter()
-        .map(|speaker| (*speaker, Segmenter::new(*speaker)))
+        .map(|speaker| {
+            let segmenter = if voice_only && *speaker == Speaker::You {
+                Segmenter::voice_command(*speaker)
+            } else {
+                Segmenter::new(*speaker)
+            };
+            (*speaker, segmenter)
+        })
         .collect();
     let mut peaks: HashMap<Speaker, f32> = HashMap::new();
     let mut last_level = Instant::now();
@@ -98,12 +128,34 @@ fn run(rx: Receiver<RawFrames>, app: AppHandle, sink: UtteranceSink, stop: Arc<A
                 let mono = resampler.process(&frames.samples);
                 match speaker {
                     Speaker::Participant => {
-                        consume(speaker, mono, &mut gate, &mut segmenters, &sink, &app);
+                        consume(
+                            speaker,
+                            mono,
+                            &mut gate,
+                            &mut segmenters,
+                            &sink,
+                            &app,
+                            transcribe_microphone,
+                        );
                     }
                     Speaker::You => {
-                        let delayed = mic_delay.push(&mono);
-                        if !delayed.is_empty() {
-                            consume(speaker, delayed, &mut gate, &mut segmenters, &sink, &app);
+                        // Voice commands have no system-audio tap, so the
+                        // echo-alignment delay only adds lag.
+                        let samples = if capture_system_audio {
+                            mic_delay.push(&mono)
+                        } else {
+                            mono
+                        };
+                        if !samples.is_empty() {
+                            consume(
+                                speaker,
+                                samples,
+                                &mut gate,
+                                &mut segmenters,
+                                &sink,
+                                &app,
+                                transcribe_microphone,
+                            );
                         }
                     }
                 }
@@ -120,9 +172,23 @@ fn run(rx: Receiver<RawFrames>, app: AppHandle, sink: UtteranceSink, stop: Arc<A
 
     let leftover = mic_delay.flush();
     if !leftover.is_empty() {
-        consume(Speaker::You, leftover, &mut gate, &mut segmenters, &sink, &app);
+        consume(
+            Speaker::You,
+            leftover,
+            &mut gate,
+            &mut segmenters,
+            &sink,
+            &app,
+            transcribe_microphone,
+        );
     }
-    flush(&mut resamplers, &mut segmenters, &sink, &app);
+    flush(
+        &mut resamplers,
+        &mut segmenters,
+        &sink,
+        &app,
+        transcribe_microphone,
+    );
     log::debug!("audio pipeline stopped");
 }
 
@@ -133,6 +199,7 @@ fn consume(
     segmenters: &mut HashMap<Speaker, Segmenter>,
     sink: &UtteranceSink,
     app: &AppHandle,
+    transcribe_microphone: bool,
 ) {
     gate.filter(speaker, &mut samples);
 
@@ -140,9 +207,9 @@ fn consume(
         return;
     };
     for utterance in segmenter.push(&samples) {
-        // Microphone audio is only used to keep the user's voice out of the
-        // interviewer stream. We transcribe questions, not the candidate.
-        if speaker == Speaker::You {
+        // Meetings keep the mic for echo gating only. Voice commands need
+        // those same clips sent to Whisper.
+        if speaker == Speaker::You && !transcribe_microphone {
             continue;
         }
         if !utterance.preview {
@@ -164,9 +231,10 @@ fn flush(
     segmenters: &mut HashMap<Speaker, Segmenter>,
     sink: &UtteranceSink,
     app: &AppHandle,
+    transcribe_microphone: bool,
 ) {
     for (speaker, segmenter) in segmenters.iter_mut() {
-        if *speaker == Speaker::You {
+        if *speaker == Speaker::You && !transcribe_microphone {
             let _ = resamplers.get_mut(speaker).map(|resampler| resampler.flush());
             let _ = segmenter.flush();
             continue;

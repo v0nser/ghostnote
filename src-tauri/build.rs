@@ -12,7 +12,7 @@ fn main() {
 /// Command Line Tools ship the very same libraries at a different prefix.
 ///
 /// Adding the fallback path here means a full Xcode install is not required to
-/// build GhostNote.
+/// build Coda.
 #[cfg(target_os = "macos")]
 fn link_swift_runtime() {
     const XCODE_SWIFT: &str =

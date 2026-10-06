@@ -11,11 +11,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Paid plans
+## Paid plans + database
 
-Checkout lives at `/checkout?plan=pro` or `/checkout?plan=team`. Reservations, subscriptions, and Early Bird spot counts persist in MongoDB when `MONGODB_URI` is set. Without MongoDB the same APIs keep working in memory for local demos.
+Follow **[SETUP.md](./SETUP.md)** (MongoDB Atlas + Polar). Polar is the default payment path: global cards, payouts to your bank, no Stripe business review.
 
-If Stripe keys are present, checkout creates a Stripe subscription session. Otherwise the success page writes an active subscription to MongoDB and unlocks paid entitlements on `/account`.
+Checkout: `/checkout?plan=pro` or `/checkout?plan=team`. Health: `/api/health`.
+
+Reservations and subscriptions persist in MongoDB when `MONGODB_URI` is set. Production will not unlock a plan unless Polar (or Stripe) confirms payment.
 
 ## Desktop installers
 

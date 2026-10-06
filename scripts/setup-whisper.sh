@@ -7,12 +7,11 @@
 #
 #   ./scripts/setup-whisper.sh [model]
 #
-# `model` defaults to base.en. Use small.en for better accuracy at ~3.5x the
-# size and runtime.
+# `model` defaults to small.en for accent accuracy. Use base.en for a smaller file.
 
 set -euo pipefail
 
-MODEL="${1:-base.en}"
+MODEL="${1:-small.en}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLING="$REPO_ROOT/.tooling"
 BINARIES="$REPO_ROOT/src-tauri/binaries"
@@ -22,8 +21,12 @@ BINARIES="$REPO_ROOT/src-tauri/binaries"
 TRIPLE="$(rustc -vV | awk '/^host:/ {print $2}')"
 
 case "$(uname -s)" in
-  Darwin) MODEL_DIR="$HOME/Library/Application Support/com.ghostnote.app/models" ;;
-  Linux)  MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/com.ghostnote.app/models" ;;
+  Darwin)
+    MODEL_DIR="${CODA_HOME:-$HOME/.coda}/models"
+    ;;
+  Linux)
+    MODEL_DIR="${CODA_HOME:-$HOME/.coda}/models"
+    ;;
   *)      echo "unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 

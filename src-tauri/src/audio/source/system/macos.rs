@@ -8,7 +8,7 @@
 //! Two consequences the rest of the app has to live with:
 //!
 //! - It requires **Screen Recording** permission, and macOS shows the orange
-//!   recording indicator in the menu bar while the stream is live. GhostNote's
+//!   recording indicator in the menu bar while the stream is live. Coda's
 //!   window stays out of the captured frame, but the indicator itself is
 //!   visible to anyone looking at the user's screen.
 //! - `SCStream` always captures a display, even when only audio is wanted. We
@@ -43,7 +43,7 @@ pub fn spawn(sink: FrameSink) -> AudioResult<SourceHandle> {
 
     let thread_stop = Arc::clone(&stop);
     let thread = std::thread::Builder::new()
-        .name("ghostnote-system-audio".into())
+        .name("coda-system-audio".into())
         .spawn(move || run(sink, thread_stop, ready_tx))
         .map_err(|err| AudioError::StreamOpen(err.to_string()))?;
 
@@ -102,7 +102,7 @@ fn open_stream(sink: FrameSink) -> AudioResult<SCStream> {
         .with_captures_audio(true)
         .with_sample_rate(CAPTURE_SAMPLE_RATE as i32)
         .with_channel_count(i32::from(CAPTURE_CHANNELS))
-        // Without this we would hear ourselves: any audio GhostNote plays
+        // Without this we would hear ourselves: any audio Coda plays
         // would be captured, transcribed and fed back into the meeting notes.
         .with_excludes_current_process_audio(true);
 

@@ -1,0 +1,36 @@
+---
+import { site } from "../content/site";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const title = Astro.props.title ?? site.tagline;
+const description =
+  Astro.props.description ??
+  "Coda is a local-first desktop agent. No cloud GPT. No silent auto-send. You cue it; it prepares the work and waits for your yes.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f3ead8" />
+    <title>{title}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.bunny.net" />
+    <link
+      href="https://fonts.bunny.net/css?family=bricolage-grotesque:400,500,600,700|fraunces:400,500,600,italic|ibm-plex-mono:400,500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="min-h-screen antialiased">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <slot />
+    <div class="grain" aria-hidden="true"></div>
+  </body>
+</html>

@@ -1,5 +1,5 @@
 {
-  "name": "ghostnote",
+  "name": "coda",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "landing": "npm --prefix website run dev",
+    "coda-site": "npm --prefix coda-site run dev",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

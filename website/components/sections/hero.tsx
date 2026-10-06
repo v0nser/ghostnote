@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 
-import { CountdownTimer } from "@/components/countdown-timer";
 import { MagneticButton } from "@/components/magnetic-button";
 import { AppWindow } from "@/components/mockups/app-window";
-import { useCountdown } from "@/hooks/use-countdown";
 
 export function Hero() {
   const [stealth, setStealth] = useState(false);
-  const { expired } = useCountdown();
 
   return (
     <section className="relative overflow-hidden px-5 pb-20 pt-16 md:pt-24">
@@ -18,25 +15,20 @@ export function Hero() {
         <div>
           <p className="mb-4 text-xs uppercase tracking-[0.28em] text-mist">GhostNote</p>
           <h1 className="max-w-xl text-4xl font-semibold leading-[1.08] text-white sm:text-5xl lg:text-6xl">
-            Invisible intelligence.
-            <span className="block text-mist">Unforgettable meetings.</span>
+            A local AI agent.
+            <span className="block text-mist">Invisible in meetings.</span>
           </h1>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-mist">
-            The only AI meeting assistant that stays hidden during screen shares.
+            Plan, research, draft, and remember on your machine. The meeting
+            copilot stays hidden on screen share. Nothing leaves unless you
+            connect a cloud model.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <MagneticButton href="#cta">Download Free</MagneticButton>
-            <MagneticButton href="#demo" variant="secondary">
-              See How It Works
+            <MagneticButton href="#capabilities" variant="secondary">
+              See capabilities
             </MagneticButton>
           </div>
-          <a
-            href="#early-bird"
-            className="focus-ring mt-5 inline-flex flex-wrap items-center gap-2 rounded-full border border-accent-cyan/30 bg-white/5 px-4 py-2 text-sm text-white/80"
-          >
-            🎉 Early Bird: 50% OFF
-            {expired ? <span>ended</span> : <CountdownTimer compact className="text-accent-cyan" />}
-          </a>
         </div>
         <AppWindow
           stealth={stealth}

@@ -18,9 +18,9 @@ use crate::audio::types::Speaker;
 use crate::transcribe::TranscriptSegment;
 
 /// Emitted whenever a fresh draft is ready (including mid-stream tokens).
-pub const POINTS_EVENT: &str = "ghostnote://talking-points";
+pub const POINTS_EVENT: &str = "coda://talking-points";
 /// Emitted when generation starts, finishes, or Ollama becomes unavailable.
-pub const STATUS_EVENT: &str = "ghostnote://coach-status";
+pub const STATUS_EVENT: &str = "coda://coach-status";
 
 /// Only enough to let a trailing word land on the same turn. The pause that
 /// means "they finished" already happened in the segmenter.
@@ -286,7 +286,8 @@ impl Coach {
                     LiveCoachStatus {
                         available: !matches!(
                             err,
-                            super::error::OllamaError::Unavailable | super::error::OllamaError::NoModel
+                            super::error::OllamaError::Unavailable { .. }
+                            | super::error::OllamaError::NoModel
                         ),
                         generating: false,
                         phase: "idle",
@@ -374,7 +375,7 @@ impl Coach {
             .join("\n")
     }
 
-    pub async fn summarize(&self) -> super::error::OllamaResult<MeetingSummary> {
+    pub async fn summarize(&self, app: &AppHandle) -> super::error::OllamaResult<MeetingSummary> {
         let transcript = self.render_meeting();
         if transcript.trim().len() < MIN_CUE_CHARS {
             return Err(super::error::OllamaError::Request(
@@ -382,7 +383,18 @@ impl Coach {
             ));
         }
         let (model, text) = self.inner.client.summarize(&transcript).await?;
-        Ok(MeetingSummary { text, model })
+        let layer = crate::meeting::after_transcript(app, &self.inner.client, &transcript).await;
+        Ok(MeetingSummary {
+            text,
+            model,
+            action_items: layer.action_items,
+            topics: layer.topics,
+            people: layer.people,
+            nudges: layer.nudges,
+            drafts: layer.drafts,
+            extract_model: layer.extract_model,
+            extract_error: layer.extract_error,
+        })
     }
 
     fn abort_inflight(&self) {
@@ -531,6 +543,18 @@ fn same_question(previous: &str, next: &str) -> bool {
 pub struct MeetingSummary {
     pub text: String,
     pub model: String,
+    #[serde(default)]
+    pub action_items: Vec<crate::meeting::ActionItem>,
+    #[serde(default)]
+    pub topics: Vec<String>,
+    #[serde(default)]
+    pub people: Vec<String>,
+    #[serde(default)]
+    pub nudges: Vec<crate::meeting::Nudge>,
+    #[serde(default)]
+    pub drafts: Vec<crate::meeting::Draft>,
+    pub extract_model: Option<String>,
+    pub extract_error: Option<String>,
 }
 
 #[cfg(test)]

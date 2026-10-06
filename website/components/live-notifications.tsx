@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const NOTES = [
-  { name: "John", location: "San Francisco", action: "just claimed Early Bird" },
-  { name: "Sarah", location: "London", action: "upgraded to Pro" },
-  { name: "Team at Acme Corp", location: "New York", action: "locked in 50% discount" },
-  { name: "Priya", location: "Bengaluru", action: "reserved a Pro seat" },
-  { name: "Diego", location: "Madrid", action: "claimed the Team discount" },
-  { name: "Hana", location: "Tokyo", action: "just claimed Early Bird" },
+  { name: "John", location: "San Francisco", action: "just installed Ghost Note" },
+  { name: "Sarah", location: "London", action: "ran a local research task" },
+  { name: "Priya", location: "Bengaluru", action: "turned on stealth for a call" },
+  { name: "Diego", location: "Madrid", action: "pulled llama3.2:3b" },
+  { name: "Hana", location: "Tokyo", action: "used a voice command" },
 ];
 
 export function LiveNotifications() {

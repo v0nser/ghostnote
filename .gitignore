@@ -23,10 +23,16 @@ src-tauri/gen
 src-tauri/binaries/
 .tooling/
 
+# Local crash / failure reports (never commit)
+logs/*
+!logs/.gitignore
+
 # Secrets & local data — never commit transcripts, notes or keys
 .env
 .env.*
 !.env.example
+*.coda.db
+*.coda.db-*
 *.ghostnote.db
 *.ghostnote.db-*
 /data
@@ -37,3 +43,6 @@ src-tauri/target-test/
 target/
 src-tauri/target-test/
 src-tauri/target/
+
+# Runtime failure logs from local runs
+src-tauri/logs/

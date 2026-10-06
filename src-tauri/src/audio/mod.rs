@@ -53,6 +53,10 @@ pub struct CaptureOptions {
     /// Whether to also capture participant audio.
     #[serde(default = "default_true")]
     pub capture_system_audio: bool,
+    /// Send the user's microphone clips to Whisper. Off during meetings
+    /// (we only need the other side). On for voice commands.
+    #[serde(default)]
+    pub transcribe_microphone: bool,
 }
 
 impl Default for CaptureOptions {
@@ -60,6 +64,7 @@ impl Default for CaptureOptions {
         Self {
             microphone_device_id: None,
             capture_system_audio: true,
+            transcribe_microphone: false,
         }
     }
 }
@@ -140,7 +145,13 @@ impl AudioEngine {
             (None, None)
         };
 
-        let pipeline = pipeline::Pipeline::spawn(rx, app.clone(), sink);
+        let pipeline = pipeline::Pipeline::spawn(
+            rx,
+            app.clone(),
+            sink,
+            options.transcribe_microphone,
+            options.capture_system_audio,
+        );
 
         *slot = Some(Session {
             _microphone: microphone,

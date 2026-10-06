@@ -24,6 +24,7 @@ function SuccessBody() {
   const email = params.get("email") ?? "";
   const plan = params.get("plan") ?? "pro";
   const sessionId = params.get("session_id");
+  const checkoutId = params.get("checkout_id");
   const [data, setData] = useState<AccountPayload | null>(null);
 
   useEffect(() => {
@@ -31,12 +32,12 @@ function SuccessBody() {
     fetch("/api/checkout/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, plan, sessionId }),
+      body: JSON.stringify({ email, plan, sessionId, checkoutId }),
     })
       .then((res) => res.json())
       .then((payload) => setData({ subscription: payload.subscription, error: payload.error }))
       .catch(() => setData({ error: "Could not load your subscription." }));
-  }, [email, plan, sessionId]);
+  }, [email, plan, sessionId, checkoutId]);
 
   const entitlements = data?.subscription?.entitlements ?? [];
 

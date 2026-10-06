@@ -87,33 +87,37 @@ export const useCaptureStore = create<CaptureStore>((set, get) => ({
       set({ error: describeIpcError(error) });
     }
 
-    unlisteners = await Promise.all([
-      listen<TranscriptSegment>(CAPTURE_EVENTS.segment, ({ payload }) => {
-        set((state) => {
-          const last = state.segments[state.segments.length - 1];
-          const replaceLast =
-            last &&
-            last.speaker === payload.speaker &&
-            (last.provisional || payload.provisional);
+    try {
+      unlisteners = await Promise.all([
+        listen<TranscriptSegment>(CAPTURE_EVENTS.segment, ({ payload }) => {
+          set((state) => {
+            const last = state.segments[state.segments.length - 1];
+            const replaceLast =
+              last &&
+              last.speaker === payload.speaker &&
+              (last.provisional || payload.provisional);
 
-          if (replaceLast) {
-            return { segments: [...state.segments.slice(0, -1), payload] };
-          }
-          return { segments: [...state.segments, payload] };
-        });
-      }),
+            if (replaceLast) {
+              return { segments: [...state.segments.slice(0, -1), payload] };
+            }
+            return { segments: [...state.segments, payload] };
+          });
+        }),
 
-      listen<LevelEvent>(CAPTURE_EVENTS.level, ({ payload }) => {
-        set((state) => ({
-          levels: { ...state.levels, [payload.speaker]: payload.peak },
-        }));
-      }),
+        listen<LevelEvent>(CAPTURE_EVENTS.level, ({ payload }) => {
+          set((state) => ({
+            levels: { ...state.levels, [payload.speaker]: payload.peak },
+          }));
+        }),
 
-      listen<{ message: string }>(CAPTURE_EVENTS.transcriptError, ({ payload }) => {
-        log.error("transcription reported a failure");
-        set({ error: payload.message });
-      }),
-    ]);
+        listen<{ message: string }>(CAPTURE_EVENTS.transcriptError, ({ payload }) => {
+          log.error("transcription reported a failure");
+          set({ error: payload.message });
+        }),
+      ]);
+    } catch {
+      unlisteners = [() => {}];
+    }
   },
 
   start: async () => {

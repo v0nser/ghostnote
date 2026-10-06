@@ -1,4 +1,4 @@
-//! Window geometry for the two shells GhostNote can wear.
+//! Window geometry for the two shells Coda can wear.
 //!
 //! - **Dashboard**: the normal, resizable notepad window.
 //! - **Pill**: a small always-on-top widget parked at the top of the active

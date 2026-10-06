@@ -22,7 +22,7 @@ pub fn spawn(sink: FrameSink) -> AudioResult<SourceHandle> {
 
     let thread_stop = Arc::clone(&stop);
     let thread = std::thread::Builder::new()
-        .name("ghostnote-system-audio".into())
+        .name("coda-system-audio".into())
         .spawn(move || run(sink, thread_stop, ready_tx))
         .map_err(|err| AudioError::StreamOpen(err.to_string()))?;
 

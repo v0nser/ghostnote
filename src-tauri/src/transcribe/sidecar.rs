@@ -34,6 +34,7 @@ pub async fn transcribe(
     app: &AppHandle,
     model: &Path,
     wav: &Path,
+    voice_command: bool,
 ) -> TranscribeResult<Option<String>> {
     // Leave headroom: saturating every core makes the UI and the audio
     // callbacks compete with transcription, which causes dropped blocks.
@@ -45,34 +46,7 @@ pub async fn transcribe(
         .shell()
         .sidecar(SIDECAR)
         .map_err(|err| TranscribeError::SidecarSpawn(err.to_string()))?
-        .args([
-            "--model".into(),
-            model.to_string_lossy().into_owned(),
-            "--file".into(),
-            wav.to_string_lossy().into_owned(),
-            "--language".into(),
-            "en".into(),
-            "--threads".into(),
-            threads.to_string(),
-            // Greedy decode. Beam search 5× is accurate on long-form but
-            // each extra hypothesis is latency we cannot spare on a live turn.
-            "--best-of".into(),
-            "1".into(),
-            "--beam-size".into(),
-            "1".into(),
-            "--no-fallback".into(),
-            // Metal for the clip that matters: the finished question.
-            // Ollama is idle until that text exists, so they do not fight.
-            "--suppress-nst".into(),
-            "--no-speech-thold".into(),
-            "0.7".into(),
-            // Timestamps come from our segmenter, which knows where the clip
-            // sat in the meeting; Whisper's are relative to the clip.
-            "--no-timestamps".into(),
-            // Keeps stdout to the transcript alone. Progress and model
-            // diagnostics still go to stderr.
-            "--no-prints".into(),
-        ]);
+        .args(whisper_args(model, wav, threads, voice_command));
 
     let output = command
         .output()
@@ -125,10 +99,50 @@ pub async fn warm_up(app: &AppHandle) {
     let Ok(clip) = crate::audio::wav::write(&cache.join("utterances"), "warmup", &tone) else {
         return;
     };
-    match transcribe(app, &model, clip.path()).await {
+    match transcribe(app, &model, clip.path(), false).await {
         Ok(_) => log::info!("whisper model is warm"),
         Err(err) => log::warn!("whisper model warm-up failed: {err}"),
     }
+}
+
+const VOICE_PROMPT: &str = "Play music. Play a playlist. Open Apple Music. Set an alarm. Summarize the PDF. Send email.";
+
+fn whisper_args(model: &Path, wav: &Path, threads: usize, voice_command: bool) -> Vec<String> {
+    let mut args = vec![
+        "--model".into(),
+        model.to_string_lossy().into_owned(),
+        "--file".into(),
+        wav.to_string_lossy().into_owned(),
+        "--language".into(),
+        "en".into(),
+        "--threads".into(),
+        threads.to_string(),
+        "--no-fallback".into(),
+        "--suppress-nst".into(),
+        "--no-speech-thold".into(),
+        if voice_command {
+            "0.35".into()
+        } else {
+            "0.7".into()
+        },
+        "--no-timestamps".into(),
+        "--no-prints".into(),
+    ];
+    if voice_command {
+        // Short commands need a real search, not greedy decode.
+        args.push("--best-of".into());
+        args.push("5".into());
+        args.push("--beam-size".into());
+        args.push("5".into());
+        args.push("--prompt".into());
+        args.push(VOICE_PROMPT.into());
+    } else {
+        args.push("--best-of".into());
+        args.push("1".into());
+        args.push("--beam-size".into());
+        args.push("1".into());
+    }
+    args
 }
 
 /// Trims whitespace and drops Whisper's no-speech placeholders.
@@ -266,6 +280,18 @@ mod tests {
             clean("the array index (zero based"),
             Some("the array index (zero based".to_string())
         );
+    }
+
+    #[test]
+    fn voice_decode_uses_beam_and_prompt() {
+        let args = whisper_args(
+            Path::new("ggml-small.en.bin"),
+            Path::new("clip.wav"),
+            4,
+            true,
+        );
+        assert!(args.windows(2).any(|w| w[0] == "--beam-size" && w[1] == "5"));
+        assert!(args.iter().any(|a| a.contains("Play music")));
     }
 
     #[test]

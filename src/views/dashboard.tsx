@@ -1,6 +1,5 @@
 import { CircleDot, ShieldCheck } from "lucide-react";
 
-import { DragRegion, WindowControls } from "@/components/window-chrome";
 import { CaptureMeters, RecordButton } from "@/features/capture/record-button";
 import { Transcript } from "@/features/capture/transcript";
 import { TalkingPoints } from "@/features/coach/talking-points";
@@ -14,26 +13,17 @@ import { useStealthStore } from "@/store/stealth";
  * Capture, live transcript, and talking points live here. Summarisation,
  * meeting memory and sync land in later steps.
  */
-export function Dashboard() {
+export function Dashboard({ embedded = false }: { embedded?: boolean }) {
   const stealth = useStealthStore((state) => state.status);
   const capture = useCaptureStore((state) => state.status);
 
   return (
-    <div className="readable flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/20 bg-black/10 backdrop-blur-[2px]">
-      <DragRegion className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-black/20 px-3">
-        <div className="flex min-w-0 items-center gap-2" data-tauri-drag-region="false">
-          <WindowControls />
-          <span className="ml-1 truncate text-xs font-medium tracking-wide text-muted-foreground">
-            GhostNote
-          </span>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3" data-tauri-drag-region="false">
-          <CaptureMeters />
-          <RecordButton />
-          <StealthToggle />
-        </div>
-      </DragRegion>
+    <div className={embedded ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "readable flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/20 bg-black/10 backdrop-blur-[2px]"}>
+      <div className="flex h-12 shrink-0 items-center justify-end gap-3 border-b border-white/10 bg-black/20 px-3">
+        <CaptureMeters />
+        <RecordButton />
+        <StealthToggle />
+      </div>
 
       <StealthBanner />
       <CaptureBanner />
@@ -97,7 +87,7 @@ function CaptureBanner() {
   const { error, status, modelInstalled, systemAudioSupport } = useCaptureStore();
 
   const message = !modelInstalled
-    ? "No speech model installed — recording is disabled until one is available."
+    ? "No speech model installed — open Setup to download it, then record."
     : (status.running && status.systemAudioError) || error;
 
   if (!message) return null;

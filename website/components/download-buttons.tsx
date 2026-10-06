@@ -52,9 +52,11 @@ export function DownloadButtons({
       </div>
       {macReady && !winReady ? (
         <p className={`mt-3 text-xs text-mist ${align === "center" ? "text-center" : ""}`}>
-          The Mac .dmg is ready. The Windows .exe has to be built on a Windows machine with{" "}
-          <code className="font-mono">npm run tauri:build</code>, then{" "}
-          <code className="font-mono">npm run installers:publish</code>.
+          The Mac .dmg is ready. After you have a Windows .exe, open the Setup tab to
+          download the speech model — no Git clone required. To build the installer:
+          Visual Studio C++ tools, then{" "}
+          <code className="font-mono">.\\scripts\\setup-whisper.ps1</code> and{" "}
+          <code className="font-mono">npm run tauri:build</code>.
         </p>
       ) : null}
     </div>

@@ -4,15 +4,14 @@ import { useState } from "react";
 import { Github, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { EarlyBirdBanner } from "@/components/early-bird-banner";
 import { Logo } from "@/components/logo";
 import { MagneticButton } from "@/components/magnetic-button";
 
 const LINKS = [
   { href: "/#demo", label: "Demo" },
+  { href: "/#capabilities", label: "Capabilities" },
   { href: "/#features", label: "Features" },
   { href: "/#how", label: "How it works" },
-  { href: "/#pricing", label: "Pricing", badge: "Early Bird" },
   { href: "/#contribute", label: "Contribute", icon: true },
   { href: "/#faq", label: "FAQ" },
 ];
@@ -22,7 +21,6 @@ export function Header() {
 
   return (
     <div className="sticky top-0 z-50">
-      <EarlyBirdBanner />
       <header className="border-b border-white/5 bg-ink/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Logo />
@@ -35,18 +33,11 @@ export function Header() {
             >
               {"icon" in link && link.icon ? <Github className="size-3.5" /> : null}
               {link.label}
-              {"badge" in link && link.badge ? (
-                <span className="relative ml-0.5 inline-flex size-2">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-rose-400 opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-rose-400" />
-                  <span className="sr-only">{link.badge}</span>
-                </span>
-              ) : null}
             </a>
           ))}
         </nav>
         <div className="hidden md:block">
-          <MagneticButton href="/#early-bird">Claim Early Bird</MagneticButton>
+          <MagneticButton href="/#cta">Download</MagneticButton>
         </div>
         <button
           type="button"
@@ -76,13 +67,10 @@ export function Header() {
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
-                  {"badge" in link && link.badge ? (
-                    <span className="size-2 rounded-full bg-rose-400" aria-hidden />
-                  ) : null}
                 </a>
               ))}
-              <MagneticButton href="/#early-bird" className="w-full">
-                Claim Early Bird
+              <MagneticButton href="/#cta" className="w-full">
+                Download
               </MagneticButton>
             </div>
           </motion.nav>

@@ -1,7 +1,7 @@
 import { MessageSquareQuote, NotebookPen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { CoachPhase, TalkingPoints as Draft } from "@/lib/ipc/coach";
+import type { ActionItem, CoachPhase, MeetingDraft, MeetingNudge, TalkingPoints as Draft } from "@/lib/ipc/coach";
 import { useCaptureStore } from "@/store/capture";
 import { useCoachStore } from "@/store/coach";
 
@@ -9,8 +9,21 @@ import { useCoachStore } from "@/store/coach";
  * Live interview answer: one thing to say, streamed as soon as they stop.
  */
 export function TalkingPoints() {
-  const { available, phase, suggestion, message, pendingCue, summary, summarizing, summarize } =
-    useCoachStore();
+  const {
+    available,
+    phase,
+    suggestion,
+    message,
+    pendingCue,
+    summary,
+    summarizing,
+    actionItems,
+    nudges,
+    drafts,
+    extractError,
+    summarize,
+    decideDraft,
+  } = useCoachStore();
   const running = useCaptureStore((state) => state.status.running);
   const hasQuestions = useCaptureStore((state) => state.segments.length > 0);
   const busy = phase !== "idle";
@@ -55,9 +68,12 @@ export function TalkingPoints() {
           </Button>
         </div>
         {summary ? (
-          <p className="selectable max-h-40 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-foreground/90">
-            {summary}
-          </p>
+          <div className="space-y-2">
+            <p className="selectable max-h-40 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-foreground/90">
+              {summary}
+            </p>
+            <ActionItemsList items={actionItems} error={extractError} />
+          </div>
         ) : (
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             {summarizing
@@ -65,6 +81,8 @@ export function TalkingPoints() {
               : "After some questions, summarize the meeting here."}
           </p>
         )}
+        <NudgeList nudges={nudges} />
+        <DraftList drafts={drafts} onDecide={decideDraft} />
       </div>
     </section>
   );
@@ -135,7 +153,7 @@ function TalkingPointsBody({
     <p className="text-xs leading-relaxed text-muted-foreground">
       {running
         ? "When they finish a question, one answer appears here."
-        : "Record a meeting. When they ask a question, GhostNote writes one thing to say."}
+        : "Record a meeting. When they ask a question, Coda writes one thing to say."}
     </p>
   );
 }
@@ -159,6 +177,78 @@ function Caret() {
       className="ml-0.5 inline-block h-[0.9em] w-px translate-y-[0.1em] animate-pulse bg-stealth"
       aria-hidden
     />
+  );
+}
+
+function ActionItemsList({ items, error }: { items: ActionItem[]; error: string | null }) {
+  if (error && !items.length) {
+    return <p className="text-[11px] leading-relaxed text-muted-foreground">{error}</p>;
+  }
+  if (!items.length) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Action items</p>
+      {items.map((item) => (
+        <p
+          key={`${item.owner ?? "anyone"}-${item.task}`}
+          className="rounded-md border border-white/10 px-2 py-1.5 text-[11px] leading-relaxed"
+        >
+          <span className="font-medium">{item.task}</span>
+          {item.owner ? <span className="text-muted-foreground"> · {item.owner}</span> : null}
+          {item.due ? <span className="text-muted-foreground"> · {item.due}</span> : null}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function NudgeList({ nudges }: { nudges: MeetingNudge[] }) {
+  if (!nudges.length) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">From earlier meetings</p>
+      {nudges.map((nudge) => (
+        <p
+          key={`${nudge.kind}-${nudge.title}`}
+          className="rounded-md border border-white/10 px-2 py-1.5 text-[11px] leading-relaxed"
+        >
+          <span className="font-medium">{nudge.title}</span>
+          <span className="block text-muted-foreground">{nudge.detail}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function DraftList({
+  drafts,
+  onDecide,
+}: {
+  drafts: MeetingDraft[];
+  onDecide: (draftId: string, approve: boolean) => Promise<void>;
+}) {
+  const pending = drafts.filter((draft) => draft.status === "pending");
+  if (!pending.length) return null;
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Needs confirmation</p>
+      {pending.map((draft) => (
+        <div key={draft.id} className="space-y-1.5 rounded-md border border-white/10 px-2 py-1.5">
+          <p className="text-[11px] leading-relaxed">
+            <span className="font-medium">{draft.title}</span>
+            <span className="block text-muted-foreground">{draft.body}</span>
+          </p>
+          <div className="flex gap-1.5">
+            <Button type="button" size="sm" variant="secondary" onClick={() => void onDecide(draft.id, true)}>
+              Approve
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => void onDecide(draft.id, false)}>
+              Deny
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

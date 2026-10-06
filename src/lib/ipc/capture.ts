@@ -62,13 +62,14 @@ export interface SessionStatus {
 export interface CaptureOptions {
   microphoneDeviceId?: string | null;
   captureSystemAudio?: boolean;
+  transcribeMicrophone?: boolean;
 }
 
 export const CAPTURE_EVENTS = {
-  segment: "ghostnote://transcript-segment",
-  transcriptError: "ghostnote://transcript-error",
-  level: "ghostnote://audio-level",
-  vad: "ghostnote://vad",
+  segment: "coda://transcript-segment",
+  transcriptError: "coda://transcript-error",
+  level: "coda://audio-level",
+  vad: "coda://vad",
 } as const;
 
 export const captureIpc = {

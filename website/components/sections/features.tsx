@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, Cloud, Cpu, EyeOff, Shield, Zap } from "lucide-react";
+import { Brain, Cpu, EyeOff, Mic, Shield, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { TiltCard } from "@/components/tilt-card";
@@ -14,33 +14,33 @@ const FEATURES = [
   },
   {
     icon: Shield,
-    title: "100% Local AI",
-    copy: "Mic to Whisper to Ollama, all on your machine. A hard no on the cloud.",
+    title: "100% Local by default",
+    copy: "Mic to Whisper to Ollama. Tasks, memory, and audit logs stay on disk. Cloud models are opt-in.",
     visual: "Mic → local chip → answer. Cloud marked out.",
   },
   {
     icon: Zap,
-    title: "Real-Time Intelligence",
-    copy: "The answer starts streaming the instant they stop talking. One spoken reply.",
-    visual: "Question in. Answer out in under a second of feel.",
+    title: "Faster spoken replies",
+    copy: "Prefers a small local model (3B-class) so the first token lands sooner. Still streams as they finish.",
+    visual: "Question in. Answer starts immediately.",
   },
   {
     icon: Brain,
-    title: "Smart Context Awareness",
-    copy: "Only the last 45 seconds go to the model. Fast, on-topic, never a dump of the whole call.",
+    title: "Agent + meeting memory",
+    copy: "Last 45 seconds for live answers. Longer memory for goals you ask it to remember.",
     visual: "Nodes light up around the latest question.",
   },
   {
     icon: Cpu,
-    title: "Custom AI Models",
-    copy: "Llama 3.1 today. Swap in Mistral or Qwen when you want a different voice.",
+    title: "Your models",
+    copy: "Ollama first. llama3.2:3b and qwen2.5:3b are the fast defaults. Larger models work when you pull them.",
     visual: "Model cards with speed and accuracy.",
   },
   {
-    icon: Cloud,
-    title: "Encrypted Cloud Sync",
-    copy: "Optional. Devices stay in lockstep without handing the meeting to a vendor.",
-    visual: "Laptop, phone, tablet pulsing in sync.",
+    icon: Mic,
+    title: "Voice commands",
+    copy: "Speak a goal in the Agent tab. Same Whisper sidecar as meetings. No cloud speech API.",
+    visual: "Hold Voice. Speak. Plan appears.",
   },
 ];
 
@@ -49,7 +49,7 @@ export function Features() {
     <section id="features" className="px-5 py-24">
       <div className="mx-auto max-w-6xl">
         <h2 className="max-w-xl text-3xl font-semibold md:text-4xl">
-          Built for Professionals Who Demand More
+          Built for people who want an agent they can see
         </h2>
         <div className="mt-12 grid gap-5 md:grid-cols-2">
           {FEATURES.map((feature, index) => (

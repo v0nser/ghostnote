@@ -1,4 +1,4 @@
-//! Stealth Mode — GhostNote's defining feature.
+//! Stealth Mode — Coda's defining feature.
 //!
 //! Stealth Mode is three things applied together:
 //!

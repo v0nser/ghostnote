@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Minimal surface for the GhostNote main window. Window geometry is driven from Rust, so the frontend only gets the few window verbs it genuinely needs for custom chrome.",
+  "description": "Minimal surface for the Coda main window. Window geometry is driven from Rust, so the frontend only gets the few window verbs it genuinely needs for custom chrome.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -9,6 +9,13 @@
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-close",
-    "core:window:allow-is-minimized"
+    "core:window:allow-is-minimized",
+    "global-shortcut:allow-is-registered",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    "notification:default"
   ]
 }

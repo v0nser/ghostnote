@@ -1,39 +1,39 @@
 const STAGES = [
   {
     n: "01",
-    title: "Download & Install",
-    body: "One desktop app. No account. No cloud key.",
+    title: "Install the app",
+    body: "Mac: GhostNote.dmg. Windows: GhostNote-Setup.exe (WebView2 downloads if needed). No account.",
     code: "GhostNote.dmg  or  GhostNote-Setup.exe",
   },
   {
     n: "02",
-    title: "Activate Stealth",
-    body: "Flip the toggle. The window drops out of every screen share.",
-    code: "stealth: on",
+    title: "Finish Setup (especially on Windows)",
+    body: "Open the Setup tab. Download the speech model in-app. Install Ollama and pull llama3.2:3b. WASAPI captures meeting audio — no extra driver.",
+    code: "ollama pull llama3.2:3b",
   },
   {
     n: "03",
-    title: "Join Your Meeting",
-    body: "Zoom, Meet, or Teams. GhostNote sits on your machine, not in theirs.",
-    code: "capture: live",
+    title: "Meetings stay stealth",
+    body: "Flip stealth. Join Zoom, Meet, or Teams. Ghost Note sits on your machine, not in theirs.",
+    code: "stealth: on",
   },
   {
     n: "04",
-    title: "AI Listens & Learns",
-    body: "VAD cuts the question the millisecond they stop. Whisper streams the line.",
-    code: "vad → whisper",
+    title: "Live answers",
+    body: "VAD cuts the question. Whisper streams the line. A small local model writes one first-person reply.",
+    code: "vad → whisper → ollama",
   },
   {
     n: "05",
-    title: "Get Instant Answers",
-    body: "Ollama streams one first-person answer. You glance. You speak.",
-    code: "stream: true",
+    title: "Give the agent a goal",
+    body: "Type or hold Voice. It plans, searches, drafts, and asks before anything sensitive.",
+    code: "plan → tools → approval",
   },
   {
     n: "06",
-    title: "Ace Your Meeting",
-    body: "Summarize when it ends. Walk out with the recap already written.",
-    code: "summary ready",
+    title: "Keep the trail",
+    body: "Artifacts, memory, and an audit log stay local. Meeting action items can become tasks.",
+    code: "summary → create task?",
   },
 ];
 
@@ -42,7 +42,7 @@ export function HowItWorks() {
     <section id="how" className="relative px-5 py-24">
       <div className="mx-auto max-w-6xl">
         <h2 className="text-3xl font-semibold md:text-4xl">
-          From Install to Intelligence in 60 Seconds
+          From install to an agent in a few minutes
         </h2>
         <div className="mt-14 space-y-10">
           {STAGES.map((stage, index) => (

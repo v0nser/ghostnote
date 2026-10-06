@@ -1,0 +1,31 @@
+---
+import Base from "../layouts/Base.astro";
+import Header from "../components/Header.astro";
+import Principles from "../components/Principles.astro";
+import Honest from "../components/Honest.astro";
+import Rest from "../components/Rest.astro";
+import Footer from "../components/Footer.astro";
+import { Hero } from "../components/Hero";
+import { Stage } from "../components/Stage";
+import { Machine } from "../components/Machine";
+import { Demo } from "../components/Demo";
+import { Faq } from "../components/Faq";
+import { Contribute } from "../components/Contribute";
+---
+
+<Base>
+  <Header />
+  <main id="main">
+    <div id="top"></div>
+    <Hero client:load />
+    <Stage client:load />
+    <Machine client:visible />
+    <Principles />
+    <Demo client:visible />
+    <Honest />
+    <Faq client:visible />
+    <Contribute client:visible />
+    <Rest />
+  </main>
+  <Footer />
+</Base>

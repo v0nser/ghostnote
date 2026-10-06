@@ -6,24 +6,28 @@ import { ChevronDown } from "lucide-react";
 
 const QA = [
   {
-    q: "Is my data really 100% private?",
-    a: "Yes. Audio never leaves the machine. Whisper and Ollama run locally. We do not see the meeting.",
+    q: "Is my data really private?",
+    a: "Yes by default. Audio, transcripts, memory, tasks, and audit logs stay on the machine. Cloud models stay off until you configure them. Secrets are never written into logs.",
   },
   {
-    q: "Does it work on Mac, Windows, and Linux?",
-    a: "macOS is first-class today, including system-audio capture. Windows and Linux follow the same Tauri shell.",
+    q: "Does it work on Windows?",
+    a: "Yes. Use GhostNote-Setup.exe, open Setup, download the speech model, and install Ollama. Participant audio uses WASAPI loopback — no virtual cable. Building from source: scripts/setup-whisper.ps1. Details in docs/WINDOWS_SETUP.md.",
   },
   {
-    q: "What AI models does it support?",
-    a: "Anything Ollama can serve. We ship tuned for llama3.1:latest. Mistral and Qwen work the same day you pull them.",
+    q: "What can the agent actually do?",
+    a: "Plan multi-step work, search the web, fetch pages, read/write its workspace, run short sandboxed code, remember facts, and schedule follow-ups. Email send, deletes, and computer control require approval or stay denied.",
   },
   {
-    q: "Can I use it during client meetings?",
-    a: "That is the point. Stealth excludes the window from capture so a screen share never shows GhostNote.",
+    q: "Will it send email or submit applications by itself?",
+    a: "No. Ghost Sentinel blocks silent send/submit/purchase. Those actions pause for Approve once / Deny.",
   },
   {
-    q: "How does the stealth mode actually work?",
-    a: "The OS capture-exclusion API keeps the GhostNote window out of ScreenCaptureKit / similar taps. Their share sees your meeting app. It does not see us.",
+    q: "How do I make replies faster?",
+    a: "Pull a small model: ollama pull llama3.2:3b or qwen2.5:3b. Ghost Note prefers those over 8B+ models. Live answers only send the last 45 seconds of transcript.",
+  },
+  {
+    q: "Can I still use it only as a meeting copilot?",
+    a: "Yes. The Meeting tab is the original product. The Agent tab is additive. Stealth mode is unchanged.",
   },
 ];
 

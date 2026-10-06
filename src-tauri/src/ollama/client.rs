@@ -12,22 +12,38 @@ use super::error::{OllamaError, OllamaResult};
 use super::parse::{parse_partial, parse_reply, Draft};
 
 const DEFAULT_HOST: &str = "http://127.0.0.1:11434";
-const PREFERRED_MODEL: &str = "llama3.1";
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(90);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(45);
+const EXTRACT_TIMEOUT: Duration = Duration::from_secs(90);
+
+/// Meeting action-item extraction always uses this local model.
+pub const EXTRACT_MODEL: &str = "llama3.1:8b";
+
+/// Smaller / newer instruct models first so the spoken answer starts sooner.
+const FAST_PREFERRED: &[&str] = &[
+    "llama3.2:3b",
+    "llama3.2:1b",
+    "qwen2.5:3b",
+    "qwen2.5:1.5b",
+    "qwen2.5:7b",
+    "phi3:mini",
+    "phi3",
+    "gemma2:2b",
+    "llama3.2",
+    "qwen2.5",
+    "llama3.1:8b",
+    "llama3.1",
+];
 
 const SYSTEM_PROMPT: &str = "\
-You are an expert, real-time interview copilot. Your job is to listen to the interviewer's question and provide the user with exactly ONE direct, subtle, and highly appropriate answer.
+You are a live interview copilot. Reply with ONE short spoken answer.
 
-STRICT RULES:
-1. IDENTIFY THE QUESTION: Look at the recent transcript. Identify the core question the interviewer just asked. Ignore small talk or filler words.
-2. ONE ANSWER ONLY: Do not provide multiple options. Do not say \"You could say X or Y\". Give exactly ONE confident, direct answer.
-3. NO PREAMBLE: Never start with \"Sure\", \"Here is an answer\", \"To answer this\", or \"I suggest\". Start directly with the substance of the answer.
-4. CONVERSATIONAL & SUBTLE TONE: Write the answer as if the user is naturally speaking from memory. Use first-person (\"I\", \"my\"). Keep it concise (2-4 sentences max). It should sound like a smart professional recalling a fact, not an AI generating an essay.
-5. NO FORMATTING: Do not use bullet points, bold text, or headers unless absolutely strictly necessary for a technical list. Plain text only.
+Rules:
+- Identify the latest interviewer question.
+- One answer, first person, 2 sentences max.
+- No preamble, no bullets, no options.
 
-OUTPUT FORMAT:
-<detected_question> [Insert the 1-sentence question you identified here] </detected_question>
-<answer> [Insert your single, direct, conversational answer here] </answer>";
+<detected_question> one sentence </detected_question>
+<answer> the spoken reply </answer>";
 
 const SUMMARY_PROMPT: &str = "\
 You summarize a live interview for the candidate, from the questions that were asked.
@@ -54,7 +70,7 @@ impl Default for Client {
 
         Self {
             http,
-            host: DEFAULT_HOST.to_string(),
+            host: resolve_ollama_host(),
             cached_model: std::sync::Arc::new(Mutex::new(None)),
         }
     }
@@ -94,9 +110,9 @@ impl Client {
                 SYSTEM_PROMPT,
                 transcript,
                 ChatOptions {
-                    temperature: 0.2,
-                    num_predict: 120,
-                    num_ctx: 2048,
+                    temperature: 0.15,
+                    num_predict: 80,
+                    num_ctx: 1024,
                     num_batch: 512,
                     num_gpu: 99,
                 },
@@ -139,6 +155,81 @@ impl Client {
         Ok((model, text))
     }
 
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+
+    pub async fn resolve_extract_model(&self) -> OllamaResult<String> {
+        let names = self.list_models().await?;
+        if let Some(hit) = names.iter().find(|name| extract_model_matches(name)) {
+            return Ok(hit.clone());
+        }
+        Err(OllamaError::MissingExtractModel)
+    }
+
+    pub async fn complete_json(
+        &self,
+        model: &str,
+        system: &str,
+        user: &str,
+        num_predict: u32,
+        num_ctx: u32,
+    ) -> OllamaResult<String> {
+        let url = format!("{}/api/chat", self.host);
+        let request = ChatRequest {
+            model: model.to_string(),
+            stream: false,
+            format: Some("json"),
+            keep_alive: "60m",
+            options: ChatOptions {
+                temperature: 0.0,
+                num_predict,
+                num_ctx,
+                num_batch: 512,
+                num_gpu: 99,
+            },
+            messages: vec![
+                ChatMessage {
+                    role: "system",
+                    content: system.to_string(),
+                },
+                ChatMessage {
+                    role: "user",
+                    content: user.to_string(),
+                },
+            ],
+        };
+
+        let response = self
+            .http
+            .post(url)
+            .timeout(EXTRACT_TIMEOUT)
+            .json(&request)
+            .send()
+            .await
+            .map_err(|_| OllamaError::Unavailable {
+                host: self.host.clone(),
+            })?;
+
+        if !response.status().is_success() {
+            return Err(OllamaError::Request(format!(
+                "status {} from {}",
+                response.status(),
+                self.host
+            )));
+        }
+
+        let body: ChatUnary = response
+            .json()
+            .await
+            .map_err(|err| OllamaError::Request(err.to_string()))?;
+        let content = body.message.content.unwrap_or_default();
+        if content.trim().is_empty() {
+            return Err(OllamaError::UnusableOutput);
+        }
+        Ok(content)
+    }
+
     async fn resolve_model(&self) -> OllamaResult<String> {
         if let Some(cached) = self.cached_model.lock().unwrap_or_else(|e| e.into_inner()).clone()
         {
@@ -150,10 +241,7 @@ impl Client {
             return Err(OllamaError::NoModel);
         }
 
-        let preferred = names.iter().find(|name| {
-            *name == PREFERRED_MODEL || name.starts_with(&format!("{PREFERRED_MODEL}:"))
-        });
-        let chosen = preferred.cloned().unwrap_or_else(|| names[0].clone());
+        let chosen = pick_fast_model(&names).unwrap_or_else(|| names[0].clone());
         *self.cached_model.lock().unwrap_or_else(|e| e.into_inner()) = Some(chosen.clone());
         Ok(chosen)
     }
@@ -165,10 +253,14 @@ impl Client {
             .get(url)
             .send()
             .await
-            .map_err(|_| OllamaError::Unavailable)?;
+            .map_err(|_| OllamaError::Unavailable {
+                host: self.host.clone(),
+            })?;
 
         if !response.status().is_success() {
-            return Err(OllamaError::Unavailable);
+            return Err(OllamaError::Unavailable {
+                host: self.host.clone(),
+            });
         }
 
         let body: TagsResponse = response
@@ -219,7 +311,9 @@ impl Client {
             .json(&request)
             .send()
             .await
-            .map_err(|err| OllamaError::Request(err.to_string()))?;
+            .map_err(|_| OllamaError::Unavailable {
+                host: self.host.clone(),
+            })?;
 
         if !response.status().is_success() {
             return Err(OllamaError::Request(format!(
@@ -310,6 +404,110 @@ impl Client {
 
 fn collapse_ws(raw: &str) -> String {
     raw.trim().to_string()
+}
+
+pub fn resolve_ollama_host() -> String {
+    let raw = std::env::var("OLLAMA_HOST")
+        .or_else(|_| std::env::var("OLLAMA_URL"))
+        .unwrap_or_else(|_| DEFAULT_HOST.to_string());
+    normalize_host(&raw)
+}
+
+fn normalize_host(raw: &str) -> String {
+    let trimmed = raw.trim().trim_end_matches('/');
+    if trimmed.is_empty() {
+        return DEFAULT_HOST.to_string();
+    }
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        trimmed.to_string()
+    } else {
+        format!("http://{trimmed}")
+    }
+}
+
+fn extract_model_matches(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower == EXTRACT_MODEL
+        || lower.starts_with("llama3.1:8b")
+        || lower == "llama3.1:latest"
+        || lower == "llama3.1"
+}
+
+/// Prefer a small local model so first tokens arrive quickly.
+pub fn pick_fast_model(names: &[String]) -> Option<String> {
+    if let Ok(forced) = std::env::var("CODA_MODEL").or_else(|_| std::env::var("GHOSTNOTE_MODEL")) {
+        if !forced.is_empty() {
+            if let Some(hit) = names.iter().find(|name| {
+                *name == &forced || name.starts_with(&format!("{forced}:")) || name.starts_with(&forced)
+            }) {
+                return Some(hit.clone());
+            }
+            return Some(forced);
+        }
+    }
+
+    for preferred in FAST_PREFERRED {
+        if let Some(hit) = names.iter().find(|name| {
+            *name == preferred
+                || name.starts_with(&format!("{preferred}:"))
+                || name.split(':').next() == Some(preferred.split(':').next().unwrap_or(preferred))
+                    && name.contains(preferred.split(':').nth(1).unwrap_or("\0"))
+        }) {
+            return Some(hit.clone());
+        }
+    }
+
+    names
+        .iter()
+        .min_by_key(|name| model_weight(name))
+        .cloned()
+}
+
+fn model_weight(name: &str) -> i32 {
+    let lower = name.to_ascii_lowercase();
+    if lower.contains("70b") || lower.contains("32b") || lower.contains("14b") {
+        return 80;
+    }
+    if lower.contains("13b") || lower.contains("8b") {
+        return 40;
+    }
+    if lower.contains("7b") {
+        return 25;
+    }
+    if lower.contains("3b") || lower.contains("4b") {
+        return 10;
+    }
+    if lower.contains("1b") || lower.contains("2b") || lower.contains("mini") {
+        return 5;
+    }
+    30
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_model_matches, normalize_host, pick_fast_model};
+
+    #[test]
+    fn prefers_small_qwen_over_70b() {
+        let names = vec!["llama3.1:70b".into(), "qwen2.5:3b".into()];
+        assert_eq!(pick_fast_model(&names).as_deref(), Some("qwen2.5:3b"));
+    }
+
+    #[test]
+    fn host_adds_scheme() {
+        assert_eq!(normalize_host("127.0.0.1:11434"), "http://127.0.0.1:11434");
+        assert_eq!(
+            normalize_host("http://127.0.0.1:11434/"),
+            "http://127.0.0.1:11434"
+        );
+    }
+
+    #[test]
+    fn extract_model_accepts_llama31_8b() {
+        assert!(extract_model_matches("llama3.1:8b"));
+        assert!(extract_model_matches("llama3.1:8b-instruct"));
+        assert!(!extract_model_matches("llama3.2:3b"));
+    }
 }
 
 #[derive(Deserialize)]

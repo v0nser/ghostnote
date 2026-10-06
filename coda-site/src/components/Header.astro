@@ -1,0 +1,22 @@
+---
+import { site } from "../content/site";
+---
+
+<header class="pointer-events-none fixed inset-x-0 top-0 z-50 px-3 pt-3 md:px-5 md:pt-4">
+  <div class="pointer-events-auto mx-auto flex max-w-7xl items-center justify-between">
+    <a href="#top" class="flex items-center gap-2 rounded-full border-2 border-ink bg-paper/80 px-3 py-1.5 text-sm font-semibold tracking-tight backdrop-blur">
+      <span class="coda-dot size-3.5 rounded-full border border-ink" aria-hidden="true"></span>
+      {site.name}
+    </a>
+    <nav class="hidden items-center gap-1 rounded-full border-2 border-ink bg-paper/80 p-1 text-sm backdrop-blur md:flex" aria-label="Primary">
+      {
+        site.nav.map((item) => (
+          <a href={item.href} class="rounded-full px-3 py-1.5 text-ink-2 transition hover:bg-ink hover:text-paper">
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+    <a href={site.download.href} class="btn btn-ink h-9 px-4 text-xs">{site.download.label}</a>
+  </div>
+</header>

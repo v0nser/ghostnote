@@ -1,0 +1,24 @@
+---
+import { cast, site } from "../content/site";
+import { Character } from "./cast/Character";
+---
+
+<section class="relative overflow-hidden">
+  <div class="dotgrid absolute inset-0" aria-hidden="true"></div>
+  <div class="relative mx-auto max-w-7xl px-4 pb-16 pt-24 text-center md:px-8 md:pt-32">
+    <h2 class="reveal font-display text-[clamp(3rem,9vw,7.5rem)] leading-[0.86] tracking-[-0.045em]">
+      {site.rest.title}<br /><span class="caption font-normal text-ink-2">{site.rest.italic}</span>
+    </h2>
+    <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+      <a href={site.download.href} class="btn btn-ink"><span class="size-2 rounded-full bg-accent"></span> {site.download.label}</a>
+      <a href={site.source.href} class="btn btn-ghost">{site.source.label} <span aria-hidden="true">↗</span></a>
+    </div>
+    <p class="mt-3 text-sm text-ink-3">{site.download.subtitle}</p>
+
+    <div class="mx-auto mt-14 grid max-w-3xl grid-cols-3 items-end gap-4">
+      <div class="aspect-square"><Character who="engineer" mood="calm" label={`${cast.engineer.label}, leaning back, calm`} /></div>
+      <div class="aspect-square scale-90"><Character who="coda" mood="asleep" label={`${cast.coda.label}, resting`} /></div>
+      <div class="aspect-square"><Character who="friend" mood="asleep" label={`${cast.friend.label}, asleep with a smile`} /></div>
+    </div>
+  </div>
+</section>
